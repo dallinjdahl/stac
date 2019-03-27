@@ -1,0 +1,113 @@
+key word find exit @ ! lit pushnext branch drop >r r> dup swap rot + - * / a>> >> << < > u< u> = emit emits atoi  u. & | ^ ~ dump adump fsize loadn
+here , logical notbranch peekxt execute [ ] [:]
+
+[:] immediate -1 here 2 - ! ] -1 here 2 - ! exit [
+[:] [postpone] ] immediate peekxt drop , exit [
+[:] rdrop ] r> r> drop >r exit [
+[:] : ] [:] rdrop ] [
+: ' peekxt drop exit [
+: ,lit lit [ ' lit , ] , exit [
+: ['] immediate ,lit ' , exit [
+: ; immediate  ['] exit , rdrop [postpone] [ exit [
+: ;; lit [ key 
+ , ] word 0 ! ;
+: skipcell here 0 , ;
+: !here here swap ! ;
+: backpatch dup here swap - 1 - swap ! ;
+
+: base 4 ! ;
+: binary 2 base ;
+: hexadecimal 10 base ;
+: decimal a base ;
+: octal 8 base ;
+
+: not 0 = ;
+
+;; stack ops
+
+: -rot rot rot ;
+: over swap dup -rot ;
+: 2dup over over ;
+;; control structures
+
+: if immediate ['] notbranch , skipcell ;
+: then immediate backpatch ;
+: else immediate ['] branch , skipcell swap
+	backpatch ;
+
+	;; do loop-code condition while
+: do immediate here 1 + dup , 0 , ;
+: again immediate ['] rdrop , , ;
+: while immediate [postpone] if swap [postpone] again [postpone] then ;
+: until immediate ['] not , [postpone] while ;
+
+: n-do immediate ,lit 1 , ['] >r , ['] >r , [postpone] do ;
+: loop immediate ['] <r dup , , ['] 2dup , ['] > ,
+	[postpone] if ,lit 1 , ['] + , ['] >r dup , , swap
+	[postpone] again [postpone] then ['] drop dup , , ;
+
+;; data structures
+
+: add swap dup @ rot + swap ! ;
+: subtract swap dup @ rot - swap ! ;
+: allot 0 swap add ;
+
+	;; adding and removing words from dictionary
+: relink here 3 dup @ , ! ;
+: unlink 3 dup dup @ 0 ! @ @ swap ! ;
+
+
+	;; utilities for character delineation 
+: [kword] immediate ,lit key , ['] word , ;  
+: kword key word ;
+
+	;; basic (named) closures
+: <builds immediate [postpone] immediate ['] [:] ,
+	,lit skipcell ['] , , ;
+: does> immediate ['] exit , here swap ! 0 , ['] r> , ;
+
+: var <builds , does> ;
+: constant <builds , does> @ ;
+: array <builds allot does> + ;
+: reserve <builds allot does> ;
+: stack <builds 0 , allot does> ;
+: upush swap dup dup @ + 1 + rot swap ! 1 add ;
+: upop dup dup @ + 1 + @ swap 1 subtract ; 
+
+: load <builds dup fsize dup , swap loadn does> ;
+
+	;; anonymous functions without and with link headers
+	;; with headers for standalone use, without in datastructures.
+: :_ skipcell rdrop ] ;
+: :- relink rdrop :_ ;
+
+	;; strings
+: " relink 0 , [kword] " ;
+: string <builds lit [ key ; , ] word
+	does> emits ; 
+
+: cr lit [ key 
+ , ] emit ;
+
+;; debugging tools
+
+: peep dup u. ;
+: ping lit [ skipcell ] emits exit [ !here kword "ping
+"
+: n dup @ u. 1 + ;
+
+;; : asm: branch [ 2 , here 3 @ ,
+;; core library
+
+: sq dup * ;
+
+: true -1 ;
+: false 0 ;
+
+: neg? lit [ -1 1 >> ~ , ] u> ; 
+: neg ~ 1 + ;
+
+
+: . dup neg? if lit [ key - , ] emit ~ 1 + then u. ;
+
+
